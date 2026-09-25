@@ -1,5 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController;
 
-// Routes defined here are automatically prefixed with /api.
+Route::get('/products', [ProductController::class, 'list']);
+Route::post('/basket', [ProductController::class, 'calculate']);
