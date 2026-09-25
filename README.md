@@ -37,6 +37,9 @@ The specification leaves some rules open. These are the decisions I made, and wh
 7. **Unknown product codes are rejected.** `Basket::add('X99')` throws
    `UnknownProductException`. The API validates codes against the catalogue and
    returns HTTP 422 before the basket is built.
+8. **Product codes in the catalogue must be unique.** Building a catalogue with two
+   products sharing a code throws `InvalidArgumentException` instead of silently
+   keeping one of them, since that is almost certainly a configuration mistake.
 
 ## Requirements
 

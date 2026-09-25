@@ -5,16 +5,26 @@ declare(strict_types=1);
 namespace App\Domain\Basket;
 
 use App\Domain\Basket\Exceptions\UnknownProductException;
+use InvalidArgumentException;
 
 final class ProductCatalogue
 {
     /** @var array<string, Product> */
     private array $products = [];
 
-    /** @param  list<Product>  $products */
-    public function __construct(array $products) {
-        foreach($products as $product) {
-            $this->products[$product->code] = $product;   
+    /**
+     * @param  list<Product>  $products
+     *
+     * @throws InvalidArgumentException when two products share the same code
+     */
+    public function __construct(array $products)
+    {
+        foreach ($products as $product) {
+            if (isset($this->products[$product->code])) {
+                throw new InvalidArgumentException("Duplicate product code [{$product->code}].");
+            }
+
+            $this->products[$product->code] = $product;
         }
     }
 
