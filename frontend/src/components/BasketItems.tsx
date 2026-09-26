@@ -8,6 +8,8 @@ import Typography from '@mui/material/Typography'
 import type { BasketLine } from '../hooks/useBasketItems'
 import type { ProductCode } from '../types'
 import { ProductAvatar } from './ProductAvatar'
+import Box from '@mui/material/Box'
+import { formatCents } from '../lib/money'
 
 interface Props {
   lines: BasketLine[]
@@ -20,13 +22,15 @@ export function BasketItems({ lines, onAdd, onRemove }: Props) {
     <List disablePadding>
       {lines.map(({ product, quantity }) => (
         <ListItem key={product.code} disableGutters sx={{ gap: 1.5 }}>
-          <ProductAvatar product={product} size={36} />
+          <Box sx={{ display: { xs: 'none', sm: 'flex' } }}>
+            <ProductAvatar product={product} size={36} />
+          </Box>
           <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
             <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
               {product.name}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {product.code}
+            <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+              {formatCents(product.price)} × {quantity}
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
@@ -44,6 +48,12 @@ export function BasketItems({ lines, onAdd, onRemove }: Props) {
               <AddIcon fontSize="small" />
             </IconButton>
           </Stack>
+          <Typography
+            variant="body2"
+            sx={{ minWidth: 64, textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}
+          >
+            {formatCents(product.price * quantity)}
+          </Typography>
         </ListItem>
       ))}
     </List>

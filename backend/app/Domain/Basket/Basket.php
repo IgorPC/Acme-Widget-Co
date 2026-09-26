@@ -6,6 +6,7 @@ namespace App\Domain\Basket;
 
 use App\Domain\Basket\Delivery\DeliveryChargeRule;
 use App\Domain\Basket\Offers\Offer;
+use App\Domain\Basket\BasketSummary;
 
 final class Basket
 {
@@ -26,10 +27,10 @@ final class Basket
         $this->items[] = $this->catalogue->find($productCode);
     }
 
-    public function total(): int
+    public function summary(): BasketSummary
     {
         if ($this->items === []) {
-            return 0;
+            return new BasketSummary(items: [], subtotal: 0, discount: 0, delivery: 0, total: 0);
         }
 
         $subtotal = array_sum(array_map(
@@ -43,7 +44,19 @@ final class Basket
         ));
 
         $afterDiscount = $subtotal - $discount;
+        $delivery = $this->deliveryRule->chargeFor($afterDiscount);
 
-        return $afterDiscount + $this->deliveryRule->chargeFor($afterDiscount);
+        return new BasketSummary(
+            items: array_map(fn (Product $product): string => $product->code, $this->items),
+            subtotal: $subtotal,
+            discount: $discount,
+            delivery: $delivery,
+            total: $afterDiscount + $delivery,
+        );
+    }
+
+    public function total(): int
+    {
+        return $this->summary()->total;
     }
 }

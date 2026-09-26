@@ -15,7 +15,7 @@ import Alert from '@mui/material/Alert'
 export default function BasketPage() {
   const { products, loading: productsLoading, error: productsError } = useProducts() 
   const basket = useBasketItems(products)
-  const { total, loading: totalLoading, error: totalError } = useBasketTotal(basket.items)
+  const { summary, loading: totalLoading, error: totalError } = useBasketTotal(basket.items)
 
   const basketRef = useRef<HTMLDivElement>(null)
   const scrollToBasket = () => basketRef.current?.scrollIntoView({ block: 'start' })
@@ -45,7 +45,7 @@ export default function BasketPage() {
             <Box ref={basketRef} sx={{ position: { md: 'sticky' }, top: { md: 88 }, scrollMarginTop: 72 }}>
               <BasketPanel
                 lines={basket.lines}
-                total={total}
+                summary={summary}
                 onAdd={basket.add}
                 onRemove={basket.removeOne}
                 onClear={basket.clear}
@@ -57,7 +57,7 @@ export default function BasketPage() {
         </Grid>
       </Container>
 
-      <MobileBasketBar itemCount={basket.count} total={total} onViewBasket={scrollToBasket} />
+      <MobileBasketBar itemCount={basket.count} total={summary?.total ?? null} onViewBasket={scrollToBasket} />
     </Box>
   )
 }

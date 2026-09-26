@@ -46,7 +46,7 @@ final readonly class BasketService
             $basket->add($code);
         }
 
-        return new BasketData(items: $productCodes, total: $basket->total());
+        return BasketData::fromSummary($basket->summary());
     }
 
     /**

@@ -6,7 +6,10 @@ export interface Product {
   price: number // in cents
 }
 
-export interface BasketTotal {
+export interface BasketData {
   items: ProductCode[]
-  total: number // in cents
+  subtotal: number
+  discount: number
+  delivery: number
+  total: number
 }

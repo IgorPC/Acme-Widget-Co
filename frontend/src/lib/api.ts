@@ -1,4 +1,4 @@
-import type { BasketTotal, Product, ProductCode } from '../types'
+import type { BasketData, Product, ProductCode } from '../types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -22,8 +22,8 @@ export async function getProducts(): Promise<Product[]> {
   return body.data
 }
 
-export async function calculateBasket(items: ProductCode[]): Promise<BasketTotal> {
-  const body = await request<{ data: BasketTotal }>('/api/basket', {
+export async function calculateBasket(items: ProductCode[]): Promise<BasketData> {
+  const body = await request<{ data: BasketData }>('/api/basket', {
     method: 'POST',
     body: JSON.stringify({ items }),
   })

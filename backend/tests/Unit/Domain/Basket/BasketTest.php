@@ -327,6 +327,263 @@ final class BasketTest extends TestCase
         $this->assertSame(500 * 4942, $basket->total());
     }
 
+    public function test_the_summary_explains_how_the_total_was_reached(): void
+    {
+        $basket = $this->makeBasket();
+        $basket->add('R01');
+        $basket->add('R01');
+
+        $summary = $basket->summary();
+
+        $this->assertSame(['R01', 'R01'], $summary->items);
+        $this->assertSame(6590, $summary->subtotal);
+        $this->assertSame(1648, $summary->discount);
+        $this->assertSame(495, $summary->delivery);
+        $this->assertSame(5437, $summary->total);
+    }
+
+    public function test_the_summary_adds_up_and_matches_total(): void
+    {
+        $basket = $this->makeBasket();
+
+        foreach (['B01', 'B01', 'R01', 'R01', 'R01'] as $code) {
+            $basket->add($code);
+        }
+
+        $summary = $basket->summary();
+
+        $this->assertSame(['B01', 'B01', 'R01', 'R01', 'R01'], $summary->items);
+        $this->assertSame(11475, $summary->subtotal);
+        $this->assertSame(1648, $summary->discount);
+        $this->assertSame(0, $summary->delivery);
+        $this->assertSame(9827, $summary->total);
+        $this->assertSame($basket->total(), $summary->total);
+        $this->assertSame($summary->subtotal - $summary->discount + $summary->delivery, $summary->total);
+    }
+
+    public function test_an_empty_basket_has_an_all_zero_summary(): void
+    {
+        $summary = $this->makeBasket()->summary();
+
+        $this->assertSame([], $summary->items);
+        $this->assertSame(0, $summary->subtotal);
+        $this->assertSame(0, $summary->discount);
+        $this->assertSame(0, $summary->delivery);
+        $this->assertSame(0, $summary->total);
+    }
+
+    public static function summaryBreakdowns(): array
+    {
+        return [
+            'B01, G01' => [['B01', 'G01'], 3290, 0, 495, 3785],
+            'R01, R01' => [['R01', 'R01'], 6590, 1648, 495, 5437],
+            'R01, G01' => [['R01', 'G01'], 5790, 0, 295, 6085],
+            'B01, B01, R01, R01, R01' => [['B01', 'B01', 'R01', 'R01', 'R01'], 11475, 1648, 0, 9827],
+            'single B01' => [['B01'], 795, 0, 495, 1290],
+            'single R01' => [['R01'], 3295, 0, 495, 3790],
+            'three R01' => [['R01', 'R01', 'R01'], 9885, 1648, 295, 8532],
+            'four R01' => [['R01', 'R01', 'R01', 'R01'], 13180, 3296, 0, 9884],
+            'one of each' => [['R01', 'G01', 'B01'], 6585, 0, 295, 6880],
+            'four G01' => [['G01', 'G01', 'G01', 'G01'], 9980, 0, 0, 9980],
+            'discount removes free delivery' => [['R01', 'R01', 'G01'], 9085, 1648, 295, 7732],
+        ];
+    }
+
+    #[DataProvider('summaryBreakdowns')]
+    public function test_the_summary_breaks_down_every_amount(
+        array $codes,
+        int $subtotal,
+        int $discount,
+        int $delivery,
+        int $total,
+    ): void {
+        $basket = $this->makeBasket();
+
+        foreach ($codes as $code) {
+            $basket->add($code);
+        }
+
+        $summary = $basket->summary();
+
+        $this->assertSame($codes, $summary->items);
+        $this->assertSame($subtotal, $summary->subtotal);
+        $this->assertSame($discount, $summary->discount);
+        $this->assertSame($delivery, $summary->delivery);
+        $this->assertSame($total, $summary->total);
+        $this->assertSame($summary->subtotal - $summary->discount + $summary->delivery, $summary->total);
+        $this->assertSame($summary->total, $basket->total());
+    }
+
+    public function test_a_discount_can_take_the_basket_out_of_free_delivery(): void
+    {
+        $basket = $this->makeBasket();
+
+        foreach (['R01', 'R01', 'G01'] as $code) {
+            $basket->add($code);
+        }
+
+        $summary = $basket->summary();
+
+        $this->assertGreaterThanOrEqual(9000, $summary->subtotal);
+        $this->assertLessThan(9000, $summary->subtotal - $summary->discount);
+        $this->assertSame(295, $summary->delivery);
+    }
+
+    public function test_a_discounted_subtotal_landing_exactly_on_a_threshold_uses_the_cheaper_tier(): void
+    {
+        $basket = new Basket(
+            new ProductCatalogue([
+                new Product('X01', 'Offer Widget', 3000),
+                new Product('Y01', 'Filler Widget', 500),
+            ]),
+            new TieredDeliveryCharge([5000 => 495, 9000 => 295]),
+            [new BuyOneGetSecondHalfPrice('X01')],
+        );
+
+        foreach (['X01', 'X01', 'Y01'] as $code) {
+            $basket->add($code);
+        }
+
+        $summary = $basket->summary();
+
+        $this->assertSame(6500, $summary->subtotal);
+        $this->assertSame(1500, $summary->discount);
+        $this->assertSame(295, $summary->delivery);
+        $this->assertSame(5295, $summary->total);
+    }
+
+    public function test_the_summary_lists_items_in_the_order_they_were_added_including_duplicates(): void
+    {
+        $basket = $this->makeBasket();
+
+        foreach (['G01', 'R01', 'G01', 'B01', 'R01'] as $code) {
+            $basket->add($code);
+        }
+
+        $items = $basket->summary()->items;
+
+        $this->assertSame(['G01', 'R01', 'G01', 'B01', 'R01'], $items);
+        $this->assertTrue(array_is_list($items));
+    }
+
+    public function test_the_summary_of_a_basket_without_offers_has_no_discount(): void
+    {
+        $basket = new Basket($this->catalogue(), new TieredDeliveryCharge([5000 => 495, 9000 => 295]));
+        $basket->add('R01');
+        $basket->add('R01');
+
+        $summary = $basket->summary();
+
+        $this->assertSame(6590, $summary->subtotal);
+        $this->assertSame(0, $summary->discount);
+        $this->assertSame(295, $summary->delivery);
+        $this->assertSame(6885, $summary->total);
+    }
+
+    public function test_the_summary_discount_is_the_sum_of_every_offer(): void
+    {
+        $basket = new Basket(
+            $this->catalogue(),
+            new SpyDeliveryChargeRule(0),
+            [new SpyOffer(100), new SpyOffer(250)],
+        );
+        $basket->add('G01');
+
+        $summary = $basket->summary();
+
+        $this->assertSame(2495, $summary->subtotal);
+        $this->assertSame(350, $summary->discount);
+        $this->assertSame(2145, $summary->total);
+    }
+
+    public function test_the_summary_delivery_is_what_the_rule_charges_for_the_discounted_subtotal(): void
+    {
+        $delivery = new SpyDeliveryChargeRule(123);
+        $basket = new Basket($this->catalogue(), $delivery, [new SpyOffer(95)]);
+        $basket->add('B01');
+
+        $summary = $basket->summary();
+
+        $this->assertSame([700], $delivery->receivedSubtotals);
+        $this->assertSame(123, $summary->delivery);
+        $this->assertSame(823, $summary->total);
+    }
+
+    public function test_the_summary_of_an_empty_basket_does_not_consult_the_rules(): void
+    {
+        $delivery = new SpyDeliveryChargeRule(495);
+        $offer = new SpyOffer(10);
+
+        $summary = (new Basket($this->catalogue(), $delivery, [$offer]))->summary();
+
+        $this->assertSame(0, $summary->total);
+        $this->assertSame([], $delivery->receivedSubtotals);
+        $this->assertSame([], $offer->receivedItems);
+    }
+
+    public function test_a_summary_is_a_snapshot_of_the_basket_when_it_was_taken(): void
+    {
+        $basket = $this->makeBasket();
+        $basket->add('R01');
+
+        $before = $basket->summary();
+        $basket->add('R01');
+        $after = $basket->summary();
+
+        $this->assertSame(['R01'], $before->items);
+        $this->assertSame(3790, $before->total);
+        $this->assertSame(['R01', 'R01'], $after->items);
+        $this->assertSame(5437, $after->total);
+    }
+
+    public function test_repeated_summaries_are_equal_but_independent(): void
+    {
+        $basket = $this->makeBasket();
+        $basket->add('R01');
+        $basket->add('G01');
+
+        $first = $basket->summary();
+        $second = $basket->summary();
+
+        $this->assertNotSame($first, $second);
+        $this->assertEquals($first, $second);
+    }
+
+    public function test_a_failed_add_does_not_change_the_summary(): void
+    {
+        $basket = $this->makeBasket();
+        $basket->add('B01');
+
+        try {
+            $basket->add('X99');
+            $this->fail('Expected UnknownProductException.');
+        } catch (UnknownProductException) {
+        }
+
+        $summary = $basket->summary();
+
+        $this->assertSame(['B01'], $summary->items);
+        $this->assertSame(1290, $summary->total);
+    }
+
+    public function test_a_basket_of_free_products_has_only_delivery_in_its_summary(): void
+    {
+        $basket = new Basket(
+            new ProductCatalogue([new Product('F01', 'Free Widget', 0)]),
+            new TieredDeliveryCharge([5000 => 495, 9000 => 295]),
+            [new BuyOneGetSecondHalfPrice('F01')],
+        );
+        $basket->add('F01');
+        $basket->add('F01');
+
+        $summary = $basket->summary();
+
+        $this->assertSame(0, $summary->subtotal);
+        $this->assertSame(0, $summary->discount);
+        $this->assertSame(495, $summary->delivery);
+        $this->assertSame(495, $summary->total);
+    }
+
     private function makeBasket(): Basket
     {
         return new Basket(
