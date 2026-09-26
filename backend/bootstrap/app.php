@@ -1,10 +1,13 @@
 <?php
 
+use App\Domain\Basket\Exceptions\UnknownProductException;
+use App\Support\ErrorResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Domain\Basket\Exceptions\UnknownProductException;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,15 +19,25 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // API-only app: always render errors as JSON.
-        $exceptions->shouldRenderJsonWhen(fn () => true);
-
-        // Unknown product codes are a client error, not a bug: don't log them.
         $exceptions->dontReport(UnknownProductException::class);
 
-        // Domain exception -> 422, in the same shape as Laravel validation errors.
-        $exceptions->render(fn (UnknownProductException $e): JsonResponse => response()->json([
-            'message' => $e->getMessage(),
-            'errors' => ['items' => [$e->getMessage()]],
-        ], 422));
+        $exceptions->renderable(function (\Throwable $e) {
+            if ($e instanceof NotFoundHttpException) {
+                return ErrorResponse::make('Route Not Found', null, 404);
+            }
+
+            if ($e instanceof MethodNotAllowedHttpException) {
+                return ErrorResponse::make('Method Not Allowed', null, 405);
+            }
+
+            if ($e instanceof ValidationException) {
+                return ErrorResponse::make('Validation error.', $e->errors(), 422);
+            }
+
+            if ($e instanceof UnknownProductException) {
+                return ErrorResponse::make($e->getMessage(), null, 422);
+            }
+
+            return ErrorResponse::make('Internal Server Error');
+        });
     })->create();

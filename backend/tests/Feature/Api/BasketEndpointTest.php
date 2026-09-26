@@ -84,17 +84,17 @@ final class BasketEndpointTest extends TestCase
     {
         $this->postJson('/api/basket', ['items' => ['X99']])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('items')
-            ->assertJsonPath('message', 'Unknown product code [X99].');
+            ->assertJsonPath('message', 'Unknown product code [X99].')
+            ->assertJsonPath('errors', null);
     }
 
-    public function test_the_unknown_product_error_has_the_validation_error_shape(): void
+    public function test_the_unknown_product_error_has_a_message_and_no_field_errors(): void
     {
         $this->postJson('/api/basket', ['items' => ['X99']])
             ->assertUnprocessable()
             ->assertExactJson([
                 'message' => 'Unknown product code [X99].',
-                'errors' => ['items' => ['Unknown product code [X99].']],
+                'errors' => null,
             ]);
     }
 
@@ -106,11 +106,12 @@ final class BasketEndpointTest extends TestCase
             ->assertJsonMissingPath('data');
     }
 
-    public function test_only_the_first_unknown_product_is_reported(): void
+    public function test_only_the_first_unknown_product_is_named_in_the_message(): void
     {
         $this->postJson('/api/basket', ['items' => ['X01', 'X02']])
             ->assertUnprocessable()
-            ->assertJsonPath('errors.items', ['Unknown product code [X01].']);
+            ->assertJsonPath('message', 'Unknown product code [X01].')
+            ->assertJsonPath('errors', null);
     }
 
     public function test_product_codes_are_case_sensitive(): void
