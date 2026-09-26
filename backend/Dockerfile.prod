@@ -1,0 +1,22 @@
+FROM php:8.3-fpm-alpine
+
+RUN apk add --no-cache unzip
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+WORKDIR /var/www/html
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader
+
+COPY . .
+RUN composer dump-autoload --no-dev --optimize \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+RUN printf '[www]\nclear_env = no\n' > /usr/local/etc/php-fpm.d/zz-env.conf
+
+EXPOSE 9000
+
+CMD ["sh", "-c", "php artisan config:cache && exec php-fpm"]

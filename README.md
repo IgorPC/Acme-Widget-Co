@@ -128,3 +128,17 @@ Frontend with coverage:
 cd frontend
 npm run test:coverage
 ```
+
+## Deploy (Coolify)
+
+Production uses `docker-compose.prod.yml`: `web` (nginx serving the built frontend and
+proxying `/api` and `/up` to PHP-FPM) and `api` (Laravel on PHP-FPM). Only `web` is
+exposed, so the app runs on a single domain and needs no CORS.
+
+1. Point a DNS `A` record for the domain to the server IP.
+2. In Coolify, create a resource from the GitHub repository with build pack
+   **Docker Compose** and compose file `/docker-compose.prod.yml`.
+3. Set the environment variable `APP_KEY` (generate with `php artisan key:generate --show`).
+4. Set the domain of the `web` service to `https://<your-domain>:80`.
+5. Deploy and check `https://<your-domain>/up` and `https://<your-domain>/api/products`.
+
