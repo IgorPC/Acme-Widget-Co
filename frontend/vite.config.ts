@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
+      watch: env.VITE_USE_POLLING === 'true' ? { usePolling: true } : undefined,
       // Every request starting with /api (and Laravel's /up health check)
       // is forwarded to the Laravel backend, so the browser sees a single
       // origin and no CORS configuration is needed in development.

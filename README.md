@@ -71,6 +71,18 @@ backend, so the frontend calls relative paths and no CORS setup is needed.
 The backend URL can be changed with `VITE_BACKEND_URL` in `frontend/.env`
 (see `frontend/.env.example`).
 
+### With Docker
+
+```bash
+docker compose up
+# UI: http://localhost:5173 · API: http://localhost:8000
+```
+
+No local PHP or Node needed. On start, the backend runs `composer setup` only if
+`backend/vendor` is missing, and the frontend runs `npm install` only if its
+`node_modules` volume is empty; otherwise both steps are skipped. Use
+`docker compose down -v` to also drop the `node_modules` volume.
+
 ## Tests
 
 ```bash
