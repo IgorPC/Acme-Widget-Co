@@ -1,5 +1,7 @@
 # Acme Widget Co
 
+![CI](https://github.com/IgorPC/Acme-Widget-Co/actions/workflows/ci.yml/badge.svg)
+
 Proof of concept of the Acme Widget Co sales basket.
 
 | Folder | Stack |
