@@ -39,13 +39,14 @@ The specification leaves some rules open. These are the decisions I made, and wh
    $4.95") would charge delivery for nothing; no delivery is charged when there is
    nothing to ship.
 7. **Unknown product codes are rejected.** `Basket::add('X99')` throws
-   `UnknownProductException`. The API validates codes against the catalogue and
-   returns HTTP 422 before the basket is built.
+   `UnknownProductException`. The service creates the basket and adds each code in
+   turn; if a code is unknown, calculation stops and the API returns HTTP 422.
 8. **Product codes in the catalogue must be unique.** Building a catalogue with two
    products sharing a code throws `InvalidArgumentException` instead of silently
    keeping one of them, since that is almost certainly a configuration mistake.
-9. **A basket holds at most 100 items.** The API rejects larger baskets with HTTP
-   422, and the UI disables the Add buttons and says so once the limit is reached.
+9. **The API and UI limit baskets to 100 items.** The API rejects requests with
+   more than 100 product codes with HTTP 422, and the UI disables the Add buttons
+   and explains the limit once the basket reaches 100 items.
 
 > [!IMPORTANT]
 > **10. The basket is not persisted.** The items live in the React state of the
