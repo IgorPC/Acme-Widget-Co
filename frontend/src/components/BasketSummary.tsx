@@ -1,4 +1,5 @@
 import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
 import Skeleton from '@mui/material/Skeleton'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -10,6 +11,7 @@ interface Props {
   summary: BasketData | null
   loading?: boolean
   error?: string | null
+  onRetry?: () => void
 }
 
 interface RowProps {
@@ -36,13 +38,27 @@ function Row({ label, value, loading, color }: RowProps) {
   )
 }
 
-export function BasketSummary({ summary, loading = false, error = null }: Props) {
+export function BasketSummary({ summary, loading = false, error = null, onRetry }: Props) {
   if (error) {
-    return <Alert severity="error">Could not calculate the total: {error}</Alert>
+    return (
+      <Alert
+        severity="error"
+        action={
+          onRetry && (
+            <Button color="inherit" size="small" onClick={onRetry}>
+              Try again
+            </Button>
+          )
+        }
+      >
+        Could not calculate the total: {error}
+      </Alert>
+    )
   }
 
   const money = (cents: number | undefined) => (cents === undefined ? '—' : formatCents(cents))
   const isFreeDelivery = summary !== null && summary.delivery === 0 && summary.subtotal > 0
+  const showsDeliveryBasis = !loading && summary !== null && summary.discount > 0
 
   return (
     <Stack spacing={1} aria-live="polite">
@@ -51,6 +67,12 @@ export function BasketSummary({ summary, loading = false, error = null }: Props)
         <Row label="Offer discount" value={`−${money(summary?.discount)}`} loading={loading} color="success.main" />
       )}
       <Row label="Delivery" value={isFreeDelivery ? 'Free' : money(summary?.delivery)} loading={loading} />
+      {showsDeliveryBasis && (
+        <Typography variant="caption" color="text.secondary" data-testid="delivery-basis">
+          Delivery is based on {formatCents(summary.subtotal - summary.discount)}, the amount after the offer
+          discount.
+        </Typography>
+      )}
 
       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'baseline', pt: 1 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>

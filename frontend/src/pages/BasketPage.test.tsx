@@ -321,4 +321,83 @@ describe('BasketPage', () => {
     const freeCard = (await screen.findByText('Free Widget')).closest('li') as HTMLElement
     expect(within(freeCard).getByText('$0.00')).toBeInTheDocument()
   })
+
+  it('stops adding at 100 items and explains why, even under rapid clicking', async () => {
+    mockedCalculate.mockImplementation(async (items) => summaryFor(items, items.length * 795))
+    render(<BasketPage />)
+
+    const [, , addBlue] = await screen.findAllByRole('button', { name: 'Add' })
+    for (let i = 0; i < 105; i++) act(() => addBlue.click())
+
+    expect(await screen.findByText('Your basket is full. The maximum is 100 items.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Basket, 100 items' })).toBeInTheDocument()
+    for (const button of screen.getAllByRole('button', { name: 'Add' })) expect(button).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Add one Blue Widget' })).toBeDisabled()
+    expect(mockedCalculate.mock.calls.every(([items]) => items.length <= 100)).toBe(true)
+  })
+
+  it('allows adding again after removing one from a full basket', async () => {
+    mockedCalculate.mockImplementation(async (items) => summaryFor(items, items.length * 795))
+    render(<BasketPage />)
+
+    const [, , addBlue] = await screen.findAllByRole('button', { name: 'Add' })
+    for (let i = 0; i < 100; i++) act(() => addBlue.click())
+    await screen.findByText('Your basket is full. The maximum is 100 items.')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove one Blue Widget' }))
+
+    expect(screen.queryByText('Your basket is full. The maximum is 100 items.')).not.toBeInTheDocument()
+    expect(addBlue).toBeEnabled()
+  })
+
+  it('loads the products again when Try again is clicked', async () => {
+    mockedGetProducts
+      .mockImplementationOnce(async () => {
+        throw new Error('offline')
+      })
+      .mockResolvedValueOnce(CATALOGUE)
+    render(<BasketPage />)
+
+    await screen.findByText('Could not load products: offline')
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByText('Red Widget')).toBeInTheDocument()
+    expect(screen.queryByText('Could not load products: offline')).not.toBeInTheDocument()
+    expect(mockedGetProducts).toHaveBeenCalledTimes(2)
+  })
+
+  it('calculates the total again when Try again is clicked', async () => {
+    mockedCalculate
+      .mockImplementationOnce(async () => {
+        throw new Error('flaky')
+      })
+      .mockImplementation(async (items) => totalOf(items))
+    render(<BasketPage />)
+
+    const [addRed] = await screen.findAllByRole('button', { name: 'Add' })
+    await userEvent.click(addRed)
+    await screen.findByText('Could not calculate the total: flaky')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByText('$37.90', { selector: '[data-testid="basket-total"]' })).toBeInTheDocument()
+    expect(mockedCalculate).toHaveBeenCalledTimes(2)
+    expect(mockedCalculate).toHaveBeenLastCalledWith(['R01'])
+  })
+
+  it('explains the delivery charge when the offer lowers the amount below a tier', async () => {
+    mockedCalculate.mockResolvedValue({
+      items: ['R01', 'R01', 'G01', 'B01'],
+      subtotal: 9880,
+      discount: 1648,
+      delivery: 295,
+      total: 8527,
+    })
+    render(<BasketPage />)
+
+    const [addRed] = await screen.findAllByRole('button', { name: 'Add' })
+    await userEvent.click(addRed)
+
+    expect(await screen.findByTestId('delivery-basis')).toHaveTextContent('Delivery is based on $82.32')
+  })
 })

@@ -6,36 +6,40 @@ const EMPTY_BASKET: BasketData = { items: [], subtotal: 0, discount: 0, delivery
 
 interface Result {
   items: ProductCode[] | null
+  attempt: number
   summary: BasketData | null
   error: string | null
 }
 
 export function useBasketTotal(items: ProductCode[]) {
-  const [result, setResult] = useState<Result>({ items: null, summary: null, error: null })
+  const [attempt, setAttempt] = useState(0)
+  const [result, setResult] = useState<Result>({ items: null, attempt: 0, summary: null, error: null })
 
   useEffect(() => {
-    if (items.length === 0) return 
+    if (items.length === 0) return
 
     let ignore = false
 
     calculateBasket(items)
       .then((data) => {
-        if (!ignore) setResult({ items, summary: data, error: null })
+        if (!ignore) setResult({ items, attempt, summary: data, error: null })
       })
       .catch((e: Error) => {
-        if (!ignore) setResult({ items, summary: null, error: e.message })
+        if (!ignore) setResult({ items, attempt, summary: null, error: e.message })
       })
 
     return () => {
       ignore = true
     }
-  }, [items])
+  }, [items, attempt])
+
+  const retry = () => setAttempt((current) => current + 1)
 
   if (items.length === 0) {
-    return { summary: EMPTY_BASKET, loading: false, error: null }
+    return { summary: EMPTY_BASKET, loading: false, error: null, retry }
   }
 
-  const loading = result.items !== items
+  const loading = result.items !== items || result.attempt !== attempt
 
-  return { summary: loading ? null : result.summary, loading, error: loading ? null : result.error }
+  return { summary: loading ? null : result.summary, loading, error: loading ? null : result.error, retry }
 }

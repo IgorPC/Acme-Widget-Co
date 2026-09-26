@@ -11,11 +11,12 @@ import { useBasketItems } from '../hooks/useBasketItems'
 import { useBasketTotal } from '../hooks/useBasketTotal'
 import { useProducts } from '../hooks/useProducts'
 import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
 
 export default function BasketPage() {
-  const { products, loading: productsLoading, error: productsError } = useProducts() 
+  const { products, loading: productsLoading, error: productsError, retry: retryProducts } = useProducts()
   const basket = useBasketItems(products)
-  const { summary, loading: totalLoading, error: totalError } = useBasketTotal(basket.items)
+  const { summary, loading: totalLoading, error: totalError, retry: retryTotal } = useBasketTotal(basket.items)
 
   const basketRef = useRef<HTMLDivElement>(null)
   const scrollToBasket = () => basketRef.current?.scrollIntoView({ block: 'start' })
@@ -35,9 +36,23 @@ export default function BasketPage() {
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 7, lg: 8 }}>
             {productsError ? (
-              <Alert severity="error">Could not load products: {productsError}</Alert>
+              <Alert
+                severity="error"
+                action={
+                  <Button color="inherit" size="small" onClick={retryProducts}>
+                    Try again
+                  </Button>
+                }
+              >
+                Could not load products: {productsError}
+              </Alert>
             ) : (
-              <ProductList products={products} loading={productsLoading} onAdd={basket.add} />
+              <ProductList
+                products={products}
+                loading={productsLoading}
+                onAdd={basket.add}
+                addDisabled={basket.isFull}
+              />
             )}
           </Grid>
 
@@ -50,7 +65,9 @@ export default function BasketPage() {
                 onRemove={basket.removeOne}
                 onClear={basket.clear}
                 loading={totalLoading}
-                error={totalError} 
+                error={totalError}
+                isFull={basket.isFull}
+                onRetry={retryTotal}
               />
             </Box>
           </Grid>

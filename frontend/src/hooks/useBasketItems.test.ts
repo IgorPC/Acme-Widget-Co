@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { BLUE, CATALOGUE, GREEN, RED } from '../test/fixtures'
 import type { Product } from '../types'
-import { useBasketItems } from './useBasketItems'
+import { MAX_BASKET_ITEMS, useBasketItems } from './useBasketItems'
 
 describe('useBasketItems', () => {
   it('starts empty', () => {
@@ -243,5 +243,77 @@ describe('useBasketItems', () => {
     rerender({ products: [{ ...RED, price: 1000 }] })
 
     expect(result.current.lines[0].product.price).toBe(1000)
+  })
+
+  it('is not full while below the limit', () => {
+    const { result } = renderHook(() => useBasketItems(CATALOGUE))
+
+    act(() => {
+      for (let i = 0; i < MAX_BASKET_ITEMS - 1; i++) result.current.add('B01')
+    })
+
+    expect(result.current.count).toBe(MAX_BASKET_ITEMS - 1)
+    expect(result.current.isFull).toBe(false)
+  })
+
+  it('becomes full at the limit', () => {
+    const { result } = renderHook(() => useBasketItems(CATALOGUE))
+
+    act(() => {
+      for (let i = 0; i < MAX_BASKET_ITEMS; i++) result.current.add('B01')
+    })
+
+    expect(result.current.count).toBe(MAX_BASKET_ITEMS)
+    expect(result.current.isFull).toBe(true)
+  })
+
+  it('ignores additions beyond the limit, even in a single burst', () => {
+    const { result } = renderHook(() => useBasketItems(CATALOGUE))
+
+    act(() => {
+      for (let i = 0; i < MAX_BASKET_ITEMS + 25; i++) result.current.add('R01')
+    })
+
+    expect(result.current.count).toBe(MAX_BASKET_ITEMS)
+    expect(result.current.lines).toEqual([{ product: RED, quantity: MAX_BASKET_ITEMS }])
+  })
+
+  it('keeps the same items reference when an addition is ignored', () => {
+    const { result } = renderHook(() => useBasketItems(CATALOGUE))
+
+    act(() => {
+      for (let i = 0; i < MAX_BASKET_ITEMS; i++) result.current.add('B01')
+    })
+    const before = result.current.items
+    act(() => result.current.add('R01'))
+
+    expect(result.current.items).toBe(before)
+  })
+
+  it('accepts additions again after removing one from a full basket', () => {
+    const { result } = renderHook(() => useBasketItems(CATALOGUE))
+
+    act(() => {
+      for (let i = 0; i < MAX_BASKET_ITEMS; i++) result.current.add('B01')
+    })
+    act(() => result.current.removeOne('B01'))
+
+    expect(result.current.isFull).toBe(false)
+
+    act(() => result.current.add('R01'))
+
+    expect(result.current.count).toBe(MAX_BASKET_ITEMS)
+    expect(result.current.items.at(-1)).toBe('R01')
+  })
+
+  it('is not full after clearing a full basket', () => {
+    const { result } = renderHook(() => useBasketItems(CATALOGUE))
+
+    act(() => {
+      for (let i = 0; i < MAX_BASKET_ITEMS; i++) result.current.add('B01')
+    })
+    act(() => result.current.clear())
+
+    expect(result.current.isFull).toBe(false)
   })
 })

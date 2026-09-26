@@ -7,11 +7,12 @@ interface Props {
   products: Product[]
   loading?: boolean
   onAdd: (code: ProductCode) => void
+  addDisabled?: boolean
 }
 
 const CARD_SIZE = { xs: 12, sm: 6 } as const
 
-export function ProductList({ products, loading = false, onAdd }: Props) {
+export function ProductList({ products, loading = false, onAdd, addDisabled = false }: Props) {
   if (loading) {
     return (
       <Grid container spacing={2}>
@@ -28,7 +29,7 @@ export function ProductList({ products, loading = false, onAdd }: Props) {
     <Grid container spacing={2} component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
       {products.map((product) => (
         <Grid key={product.code} size={CARD_SIZE} component="li">
-          <ProductCard product={product} onAdd={onAdd} />
+          <ProductCard product={product} onAdd={onAdd} disabled={addDisabled} />
         </Grid>
       ))}
     </Grid>

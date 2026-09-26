@@ -103,4 +103,31 @@ describe('BasketPanel', () => {
     expect(screen.queryByText('Your basket is empty.')).not.toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
   })
+
+  it('does not mention the limit while the basket is not full', () => {
+    render(<BasketPanel lines={lines} summary={summary} onAdd={noop} onRemove={noop} onClear={noop} />)
+
+    expect(screen.queryByText(/basket is full/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add one Red Widget' })).toBeEnabled()
+  })
+
+  it('explains the limit and disables the plus buttons when the basket is full', () => {
+    render(<BasketPanel lines={lines} summary={summary} isFull onAdd={noop} onRemove={noop} onClear={noop} />)
+
+    expect(screen.getByText('Your basket is full. The maximum is 100 items.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add one Red Widget' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Remove one Red Widget' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeEnabled()
+  })
+
+  it('offers a retry that calls onRetry when the total fails', async () => {
+    const onRetry = vi.fn()
+    render(
+      <BasketPanel lines={lines} summary={null} error="offline" onAdd={noop} onRemove={noop} onClear={noop} onRetry={onRetry} />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+
+    expect(onRetry).toHaveBeenCalledTimes(1)
+  })
 })

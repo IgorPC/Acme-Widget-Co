@@ -15,9 +15,10 @@ interface Props {
   lines: BasketLine[]
   onAdd: (code: ProductCode) => void
   onRemove: (code: ProductCode) => void
+  addDisabled?: boolean
 }
 
-export function BasketItems({ lines, onAdd, onRemove }: Props) {
+export function BasketItems({ lines, onAdd, onRemove, addDisabled = false }: Props) {
   return (
     <List disablePadding>
       {lines.map(({ product, quantity }) => (
@@ -44,7 +45,12 @@ export function BasketItems({ lines, onAdd, onRemove }: Props) {
             >
               {quantity}
             </Typography>
-            <IconButton size="small" onClick={() => onAdd(product.code)} aria-label={`Add one ${product.name}`}>
+            <IconButton
+              size="small"
+              onClick={() => onAdd(product.code)}
+              disabled={addDisabled}
+              aria-label={`Add one ${product.name}`}
+            >
               <AddIcon fontSize="small" />
             </IconButton>
           </Stack>
