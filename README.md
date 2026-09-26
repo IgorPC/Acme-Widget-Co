@@ -47,44 +47,84 @@ The specification leaves some rules open. These are the decisions I made, and wh
 
 - PHP 8.3+ and Composer
 - Node.js 20.19+ (or 22.12+) and npm
+- Docker (optional)
 
-## Running locally
+## How to install
 
-Backend (http://localhost:8000):
+### Without Docker
 
 ```bash
 cd backend
 composer setup      # composer install + .env + app key
-php artisan serve
-```
 
-Frontend (http://localhost:5173):
-
-```bash
-cd frontend
+cd ../frontend
 npm install
-npm run dev
 ```
-
-In development, Vite proxies `/api/*` (and Laravel's `/up` health check) to the
-backend, so the frontend calls relative paths and no CORS setup is needed.
-The backend URL can be changed with `VITE_BACKEND_URL` in `frontend/.env`
-(see `frontend/.env.example`).
 
 ### With Docker
 
 ```bash
-docker compose up
-# UI: http://localhost:5173 · API: http://localhost:8000
+docker compose up --build
 ```
 
-No local PHP or Node needed. On start, the backend runs `composer setup` only if
-`backend/vendor` is missing, and the frontend runs `npm install` only if its
-`node_modules` volume is empty; otherwise both steps are skipped. Use
-`docker compose down -v` to also drop the `node_modules` volume.
+## Running locally
+
+### Without Docker
+
+Backend:
+
+```bash
+cd backend
+php artisan serve
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+### With Docker
+
+```bash
+docker-compose up -d
+```
+
+Stop it with `docker-compose down`.
+
+### Local URLs
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:8000/api |
+| Products | `GET http://localhost:8000/api/products` |
+| Basket total | `POST http://localhost:8000/api/basket` |
+| Health check | `GET http://localhost:8000/up` |
+
+The frontend proxies `/api/*` to the backend, so no CORS setup is needed. The
+backend URL can be changed with `VITE_BACKEND_URL` (see `frontend/.env.example`).
 
 ## Tests
 
+Backend:
+
 ```bash
-cd backend && composer test
+cd backend
+composer test
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+```
+
+Frontend with coverage:
+
+```bash
+cd frontend
+npm run test:coverage
 ```
