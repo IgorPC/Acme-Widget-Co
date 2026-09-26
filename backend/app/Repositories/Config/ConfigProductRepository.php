@@ -19,10 +19,12 @@ final readonly class ConfigProductRepository implements ProductRepository
     {
         /** @var list<array{code: string, name: string, price: int}> $rows */
         $rows = $this->config->get('acme.products', []);
+        $products = [];
 
-        return array_map(
-            fn (array $row): Product => new Product($row['code'], $row['name'], $row['price']),
-            $rows,
-        );
+        foreach ($rows as $row) {
+            $products[] = new Product($row['code'], $row['name'], $row['price']);
+        }
+
+        return $products;
     }
 }
