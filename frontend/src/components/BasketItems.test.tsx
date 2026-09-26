@@ -116,4 +116,26 @@ describe('BasketItems', () => {
 
     expect(screen.getAllByTestId('WidgetsOutlinedIcon', { exact: true })).toHaveLength(3)
   })
+
+  it('enables the plus buttons by default', () => {
+    render(<BasketItems lines={lines} onAdd={noop} onRemove={noop} />)
+
+    expect(screen.getByRole('button', { name: 'Add one Red Widget' })).toBeEnabled()
+  })
+
+  it('disables only the plus buttons when adding is disabled', async () => {
+    const onAdd = vi.fn()
+    const onRemove = vi.fn()
+    render(<BasketItems lines={lines} onAdd={onAdd} onRemove={onRemove} addDisabled />)
+
+    for (const product of [RED, GREEN, BLUE]) {
+      expect(screen.getByRole('button', { name: `Add one ${product.name}` })).toBeDisabled()
+      expect(screen.getByRole('button', { name: `Remove one ${product.name}` })).toBeEnabled()
+    }
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove one Red Widget' }))
+
+    expect(onRemove).toHaveBeenCalledWith('R01')
+    expect(onAdd).not.toHaveBeenCalled()
+  })
 })

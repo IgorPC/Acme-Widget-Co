@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import type { BasketData } from '../types'
 import { BasketSummary } from './BasketSummary'
 
@@ -136,5 +137,58 @@ describe('BasketSummary', () => {
     rerender(<BasketSummary summary={{ ...full, total: 100 }} />)
 
     expect(screen.getByTestId('basket-total')).toHaveTextContent('$1.00')
+  })
+
+  it('offers a retry button when the total fails and a retry handler is given', async () => {
+    const onRetry = vi.fn()
+    render(<BasketSummary summary={null} error="offline" onRetry={onRetry} />)
+
+    await userEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Try again' }))
+
+    expect(onRetry).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not offer a retry button without a retry handler', () => {
+    render(<BasketSummary summary={null} error="offline" />)
+
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('explains that delivery is based on the amount after the discount', () => {
+    render(<BasketSummary summary={full} />)
+
+    expect(screen.getByTestId('delivery-basis')).toHaveTextContent(
+      'Delivery is based on $49.42, the amount after the offer discount.',
+    )
+  })
+
+  it('explains why a subtotal of $90 or more still pays delivery', () => {
+    render(
+      <BasketSummary
+        summary={{ items: ['R01', 'R01', 'G01', 'B01'], subtotal: 9880, discount: 1648, delivery: 295, total: 8527 }}
+      />,
+    )
+
+    expect(screen.getByText('$98.80')).toBeInTheDocument()
+    expect(screen.getByText('$2.95')).toBeInTheDocument()
+    expect(screen.getByTestId('delivery-basis')).toHaveTextContent('Delivery is based on $82.32')
+  })
+
+  it('does not explain the delivery basis without a discount', () => {
+    render(<BasketSummary summary={{ ...full, discount: 0, total: 7085 }} />)
+
+    expect(screen.queryByTestId('delivery-basis')).not.toBeInTheDocument()
+  })
+
+  it('does not explain the delivery basis while loading', () => {
+    render(<BasketSummary summary={full} loading />)
+
+    expect(screen.queryByTestId('delivery-basis')).not.toBeInTheDocument()
+  })
+
+  it('does not explain the delivery basis without a summary', () => {
+    render(<BasketSummary summary={null} />)
+
+    expect(screen.queryByTestId('delivery-basis')).not.toBeInTheDocument()
   })
 })

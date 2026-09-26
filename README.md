@@ -4,6 +4,8 @@
 
 Proof of concept of the Acme Widget Co sales basket.
 
+**Live demo:** [acme-widget.igorcoutinho.com](https://acme-widget.igorcoutinho.com)
+
 | Folder | Stack |
 |---|---|
 | `backend/` | Laravel 13 (PHP 8.3+), API only, no database |
@@ -42,6 +44,24 @@ The specification leaves some rules open. These are the decisions I made, and wh
 8. **Product codes in the catalogue must be unique.** Building a catalogue with two
    products sharing a code throws `InvalidArgumentException` instead of silently
    keeping one of them, since that is almost certainly a configuration mistake.
+9. **A basket holds at most 100 items.** The API rejects larger baskets with HTTP
+   422, and the UI disables the Add buttons and says so once the limit is reached.
+
+> [!IMPORTANT]
+> **10. The basket is not persisted.** The items live in the React state of the
+> page, and the backend is stateless: every change sends the whole list of codes to
+> `POST /api/basket`, which calculates the total and keeps nothing. Reloading the
+> page or opening it in another tab starts with an empty basket. The specification
+> only asks for `add` and `total`, so persistence was left out of this proof of
+> concept.
+>
+> A persistent basket could be stored server-side in **Redis**: create a basket id
+> when the first product is added, keep the list of codes under a key such as
+> `basket:{id}` with a TTL (for example 7 days), and send the id in a cookie or
+> header. Redis fits well because a basket is small, short-lived, read and written
+> on every click, and does not need relational queries. Keeping the id in
+> `localStorage` would be enough for a single browser, but not for sharing a basket
+> across devices.
 
 ## Requirements
 

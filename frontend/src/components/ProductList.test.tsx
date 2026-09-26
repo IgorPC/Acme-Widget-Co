@@ -79,4 +79,18 @@ describe('ProductList', () => {
     expect(container.querySelectorAll('.MuiSkeleton-root')).toHaveLength(0)
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
   })
+
+  it('enables every Add button by default', () => {
+    render(<ProductList products={CATALOGUE} onAdd={() => {}} />)
+
+    for (const button of screen.getAllByRole('button', { name: 'Add' })) expect(button).toBeEnabled()
+  })
+
+  it('disables every Add button when adding is disabled', () => {
+    render(<ProductList products={CATALOGUE} onAdd={() => {}} addDisabled />)
+
+    const buttons = screen.getAllByRole('button', { name: 'Add' })
+    expect(buttons).toHaveLength(3)
+    for (const button of buttons) expect(button).toBeDisabled()
+  })
 })

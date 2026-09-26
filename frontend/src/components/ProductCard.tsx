@@ -13,9 +13,10 @@ import { ProductAvatar } from './ProductAvatar'
 interface Props {
   product: Product
   onAdd: (code: ProductCode) => void
+  disabled?: boolean
 }
 
-export function ProductCard({ product, onAdd }: Props) {
+export function ProductCard({ product, onAdd, disabled = false }: Props) {
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flexGrow: 1 }}>
@@ -33,7 +34,12 @@ export function ProductCard({ product, onAdd }: Props) {
         <Typography variant="h6" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>
           {formatCents(product.price)}
         </Typography>
-        <Button variant="contained" startIcon={<AddShoppingCartIcon />} onClick={() => onAdd(product.code)}>
+        <Button
+          variant="contained"
+          startIcon={<AddShoppingCartIcon />}
+          onClick={() => onAdd(product.code)}
+          disabled={disabled}
+        >
           Add
         </Button>
       </CardActions>

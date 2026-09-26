@@ -23,7 +23,7 @@ describe('useProducts', () => {
 
     const { result } = renderHook(() => useProducts())
 
-    expect(result.current).toEqual({ products: [], loading: true, error: null })
+    expect(result.current).toEqual({ products: [], loading: true, error: null, retry: expect.any(Function) })
   })
 
   it('loads the catalogue', async () => {
@@ -115,5 +115,43 @@ describe('useProducts', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.products).toEqual(CATALOGUE)
     expect(mockedGetProducts).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads the catalogue again when retried after an error', async () => {
+    mockedGetProducts
+      .mockImplementationOnce(async () => {
+        throw new Error('offline')
+      })
+      .mockResolvedValueOnce(CATALOGUE)
+
+    const { result } = renderHook(() => useProducts())
+    await waitFor(() => expect(result.current.error).toBe('offline'))
+
+    act(() => result.current.retry())
+
+    expect(result.current.error).toBeNull()
+    expect(result.current.loading).toBe(true)
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.products).toEqual(CATALOGUE)
+    expect(result.current.error).toBeNull()
+    expect(mockedGetProducts).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows the new error when a retry also fails', async () => {
+    mockedGetProducts
+      .mockImplementationOnce(async () => {
+        throw new Error('offline')
+      })
+      .mockImplementationOnce(async () => {
+        throw new Error('still offline')
+      })
+
+    const { result } = renderHook(() => useProducts())
+    await waitFor(() => expect(result.current.error).toBe('offline'))
+
+    act(() => result.current.retry())
+
+    await waitFor(() => expect(result.current.error).toBe('still offline'))
+    expect(result.current.loading).toBe(false)
   })
 })

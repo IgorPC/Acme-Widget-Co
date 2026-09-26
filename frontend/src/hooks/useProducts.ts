@@ -6,6 +6,7 @@ export function useProducts() {
   const [products, setProducts] = useState<Product[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let ignore = false
@@ -24,7 +25,13 @@ export function useProducts() {
     return () => {
       ignore = true
     }
-  }, [])
+  }, [attempt])
 
-  return { products, loading, error }
+  const retry = () => {
+    setError(null)
+    setLoading(true)
+    setAttempt((current) => current + 1)
+  }
+
+  return { products, loading, error, retry }
 }

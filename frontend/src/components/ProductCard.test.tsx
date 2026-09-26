@@ -80,4 +80,22 @@ describe('ProductCard', () => {
     expect(screen.getByText('Blue Widget')).toBeInTheDocument()
     expect(screen.getByText('$7.95')).toBeInTheDocument()
   })
+
+  it('is enabled by default', () => {
+    render(<ProductCard product={RED} onAdd={() => {}} />)
+
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled()
+  })
+
+  it('disables the Add button and ignores clicks when disabled', () => {
+    const onAdd = vi.fn()
+    render(<ProductCard product={RED} onAdd={onAdd} disabled />)
+
+    const button = screen.getByRole('button', { name: 'Add' })
+    expect(button).toBeDisabled()
+
+    button.click()
+
+    expect(onAdd).not.toHaveBeenCalled()
+  })
 })

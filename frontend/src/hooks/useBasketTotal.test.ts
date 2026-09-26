@@ -261,4 +261,67 @@ describe('useBasketTotal', () => {
 
     expect(result.current.summary?.items).toEqual(['R01', 'G01'])
   })
+
+  it('calculates the same basket again when retried after an error', async () => {
+    mockedCalculate
+      .mockImplementationOnce(async () => {
+        throw new Error('boom')
+      })
+      .mockImplementationOnce(async (items) => summaryFor(items, 300))
+
+    const { result } = renderHook(() => useBasketTotal(RED))
+    await waitFor(() => expect(result.current.error).toBe('boom'))
+
+    act(() => result.current.retry())
+
+    expect(result.current.loading).toBe(true)
+    expect(result.current.error).toBeNull()
+    await waitFor(() => expect(result.current.summary?.total).toBe(300))
+    expect(result.current.error).toBeNull()
+    expect(mockedCalculate).toHaveBeenCalledTimes(2)
+    expect(mockedCalculate).toHaveBeenLastCalledWith(['R01'])
+  })
+
+  it('shows the new error when a retry also fails', async () => {
+    mockedCalculate
+      .mockImplementationOnce(async () => {
+        throw new Error('boom')
+      })
+      .mockImplementationOnce(async () => {
+        throw new Error('still broken')
+      })
+
+    const { result } = renderHook(() => useBasketTotal(RED))
+    await waitFor(() => expect(result.current.error).toBe('boom'))
+
+    act(() => result.current.retry())
+
+    await waitFor(() => expect(result.current.error).toBe('still broken'))
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('ignores the result of an attempt that was superseded by a retry', async () => {
+    const first = createDeferred<BasketData>()
+    mockedCalculate
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(async (items) => summaryFor(items, 300))
+
+    const { result } = renderHook(() => useBasketTotal(RED))
+
+    act(() => result.current.retry())
+    await waitFor(() => expect(result.current.summary?.total).toBe(300))
+
+    await act(async () => first.resolve(summaryFor(RED, 100)))
+
+    expect(result.current.summary?.total).toBe(300)
+  })
+
+  it('exposes retry for an empty basket without calling the API', () => {
+    const { result } = renderHook(() => useBasketTotal(EMPTY))
+
+    act(() => result.current.retry())
+
+    expect(result.current.summary?.total).toBe(0)
+    expect(mockedCalculate).not.toHaveBeenCalled()
+  })
 })

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { Product, ProductCode } from '../types'
 
+export const MAX_BASKET_ITEMS = 100
+
 export interface BasketLine {
   product: Product
   quantity: number
@@ -9,7 +11,8 @@ export interface BasketLine {
 export function useBasketItems(products: Product[]) {
   const [items, setItems] = useState<ProductCode[]>([])
 
-  const add = (code: ProductCode) => setItems((current) => [...current, code])
+  const add = (code: ProductCode) =>
+    setItems((current) => (current.length >= MAX_BASKET_ITEMS ? current : [...current, code]))
 
   const removeOne = (code: ProductCode) =>
     setItems((current) => {
@@ -30,5 +33,5 @@ export function useBasketItems(products: Product[]) {
     [items, products],
   )
 
-  return { items, lines, count: items.length, add, removeOne, clear }
+  return { items, lines, count: items.length, isFull: items.length >= MAX_BASKET_ITEMS, add, removeOne, clear }
 }
